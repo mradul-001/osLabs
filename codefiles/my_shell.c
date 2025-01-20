@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,22 +37,47 @@ char **tokenize(char *line) {
   return tokens;
 }
 
+char **removeLastToken(char **tokens) {
+  // find the number of tokens in tokens array
+  int numTokens = 0;
+  while (tokens[numTokens] != NULL) {
+    numTokens++;
+  }
 
+  // allocate the memory for the new tokens array
+  char **newTokens = (char **)malloc(numTokens * sizeof(char *));
+
+  // copying the tokens
+  for (int i = 0; i < numTokens - 1; i++) {
+    newTokens[i] = tokens[i];
+  }
+
+  // null terminating the array
+  newTokens[numTokens - 1] = NULL;
+  return newTokens;
+}
 
 int main(int argc, char *argv[]) {
 
   char line[MAX_INPUT_SIZE];
   char **tokens;
   int i;
+  int bgGroup = 0;
 
   while (1) {
 
-    /* BEGIN: TAKING INPUT */
+    // before taking any command, check if any background process has completed
+    int cpidReaped = waitpid(-1, NULL, WNOHANG);
+    if (cpidReaped > 0) {
+      printf("\nReaped the child with pid: %d\n", cpidReaped);
+    }
+
+    // ------------ BEGIN: TAKING INPUT ------------
     bzero(line, sizeof(line));
     printf("$ ");
     scanf("%[^\n]", line);
     getchar();
-    /* END: TAKING INPUT */
+    // ---------------------------------------------
 
     line[strlen(line)] = '\n'; // terminate with new line
     tokens = tokenize(line);
@@ -62,17 +88,49 @@ int main(int argc, char *argv[]) {
       i++;
     }
 
+    // ------------ BACKGROUND PROCESS ------------
     if (strcmp("&", tokens[i - 1]) == 0) {
       // make the new token array removing the "&" in the original token array
-      char **newtokens = newtoken(tokens);
-      // test
-      int k = 0;
-      while (newtokens[k] != NULL) {
-        printf("%s\n", newtokens[k]);
+      char **newtokens = removeLastToken(tokens);
+      // forking a new child process
+      pid_t cpid = fork();
+      if (cpid < 0) {
+        printf("Some error occurred!\n");
+      } else if (cpid == 0) {
+        int isError = execvp(newtokens[0], newtokens);
+        if (isError) {
+          printf("No such command found!\n");
+        }
+      } else {
+        // parent process
+        // do nothing, don't wait
+        if (bgGroup != 0) {
+          setpgid(cpid, bgGroup);
+        } else {
+          setpgid(cpid, cpid);
+          bgGroup = getpgid(cpid);
+        }
       }
-    } else {
+    }
+
+    // ------------ FOREGROUND PROCESS ------------
+    else {
+
+      // if the command is "exit"
+      if (strcmp(tokens[0], "exit") == 0) {
+        char str[20]; // 20 digit long pgid
+        // converting bgGroup to string
+        snprintf(str, sizeof(str), "%d", -bgGroup);
+        // // printf("%s", str);
+        // char *args[] = {"kill", "-9", str, NULL};
+        // int errorId = execvp("kill", args);
+        // if (errorId == -1) {
+        //   printf("Some error killing the shell.");
+        // }
+      }
+
       // if the command is "cd"
-      if (strcmp(tokens[0], "cd") == 0) {
+      else if (strcmp(tokens[0], "cd") == 0) {
         int chDir = chdir(tokens[1]);
         if (chDir == 0) {
           char *cwd = getcwd(NULL, 0);
@@ -93,7 +151,8 @@ int main(int argc, char *argv[]) {
             printf("No such command found!\n");
           }
         } else {
-          wait(NULL);
+          // wait only for foreground child process to complete
+          waitpid(cpid, NULL, 0);
         }
       }
     }
