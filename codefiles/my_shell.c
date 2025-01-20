@@ -36,8 +36,10 @@ char **tokenize(char *line) {
   return tokens;
 }
 
+
+
 int main(int argc, char *argv[]) {
-  
+
   char line[MAX_INPUT_SIZE];
   char **tokens;
   int i;
@@ -54,30 +56,45 @@ int main(int argc, char *argv[]) {
     line[strlen(line)] = '\n'; // terminate with new line
     tokens = tokenize(line);
 
-    // if the command is "cd"
-    if (strcmp(tokens[0], "cd") == 0) {
-      int chDir = chdir(tokens[1]);
-      if (chDir == 0) {
-        char *cwd = getcwd(NULL, 0);
-        printf("Current directory: %s\n", cwd);
-      } else {
-        printf("No such directory!\n");
-      }
-
+    // check the last token, if it is "&", then switch to background mode
+    i = 0;
+    while (tokens[i] != NULL) {
+      i++;
     }
-    else {
-      // forking a child process to run the command
-      pid_t cpid = fork();
-      if (cpid < 0) {
-        printf("Something wrong occurred!\n");
-      } else if (cpid == 0) {
-        // we have "tokens" as the argument array
-        int isError = execvp(tokens[0], tokens);
-        if (isError) {
-          printf("No such command found!\n");
+
+    if (strcmp("&", tokens[i - 1]) == 0) {
+      // make the new token array removing the "&" in the original token array
+      char **newtokens = newtoken(tokens);
+      // test
+      int k = 0;
+      while (newtokens[k] != NULL) {
+        printf("%s\n", newtokens[k]);
+      }
+    } else {
+      // if the command is "cd"
+      if (strcmp(tokens[0], "cd") == 0) {
+        int chDir = chdir(tokens[1]);
+        if (chDir == 0) {
+          char *cwd = getcwd(NULL, 0);
+          printf("Current directory: %s\n", cwd);
+        } else {
+          printf("No such directory!\n");
         }
+
       } else {
-        wait(NULL);
+        // forking a child process to run the command
+        pid_t cpid = fork();
+        if (cpid < 0) {
+          printf("Something wrong occurred!\n");
+        } else if (cpid == 0) {
+          // we have "tokens" as the argument array
+          int isError = execvp(tokens[0], tokens);
+          if (isError) {
+            printf("No such command found!\n");
+          }
+        } else {
+          wait(NULL);
+        }
       }
     }
 
