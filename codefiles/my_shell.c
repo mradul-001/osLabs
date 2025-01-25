@@ -57,12 +57,23 @@ char **removeLastToken(char **tokens) {
   return newTokens;
 }
 
+// custom signal handler
+int fgGroup = -1;
+int bgGroup = -1;
+void customHandler(int sig) {
+  if (fgGroup == -1)
+    return;
+  else
+    kill(-fgGroup, SIGTERM);
+}
+
 int main(int argc, char *argv[]) {
+
+  (void)signal(SIGINT, customHandler);
 
   char line[MAX_INPUT_SIZE];
   char **tokens;
   int i;
-  int bgGroup = 0;
 
   while (1) {
 
@@ -102,14 +113,12 @@ int main(int argc, char *argv[]) {
           printf("No such command found!\n");
         }
       } else {
-        // parent process
-        // do nothing, don't wait
-        if (bgGroup != 0) {
-          setpgid(cpid, bgGroup);
-        } else {
-          setpgid(cpid, cpid);
-          bgGroup = getpgid(cpid);
+        // if there is some bg process group, put the new process in it, else
+        // create such a group
+        if (bgGroup == -1) {
+          bgGroup = cpid;
         }
+        setpgid(cpid, bgGroup);
       }
     }
 
@@ -118,15 +127,37 @@ int main(int argc, char *argv[]) {
 
       // if the command is "exit"
       if (strcmp(tokens[0], "exit") == 0) {
-        char str[20]; // 20 digit long pgid
-        // converting bgGroup to string
-        snprintf(str, sizeof(str), "%d", -bgGroup);
-        // // printf("%s", str);
-        // char *args[] = {"kill", "-9", str, NULL};
-        // int errorId = execvp("kill", args);
-        // if (errorId == -1) {
-        //   printf("Some error killing the shell.");
-        // }
+        // kill all background processes
+        pid_t cpid = fork();
+        if (cpid == 0 && bgGroup != -1) {
+          char str[20];
+          snprintf(str, sizeof(str), "%d", -bgGroup);
+          char *argv[] = {strdup("kill"), strdup("-9"), str, NULL};
+          printf("Killing background processes...");
+          execvp("kill", argv);
+          printf("Error in killing the foreground processes...");
+        } else if (cpid > 0) {
+          // kill all foreground processes
+          cpid = fork();
+          if (cpid == 0 && fgGroup != -1) {
+            char str[20];
+            snprintf(str, sizeof(str), "%d", -fgGroup);
+            char *argv[] = {strdup("kill"), strdup("-9"), str, NULL};
+            printf("Killing foreground processes...");
+            execvp("kill", argv);
+            printf("Error in killing the foreground processes...");
+          } else if (cpid > 0) {
+            // reap all the dead children
+            int check = 1;
+            while (check) {
+              int res1 = waitpid(-bgGroup, NULL, WNOHANG) == -1 ? 0 : 1;
+              int res2 = waitpid(-fgGroup, NULL, WNOHANG) == -1 ? 0 : 1;
+              check = res1 || res2;
+            }
+          }
+        }
+        // kill this shell process
+        kill(getpid(), SIGINT);
       }
 
       // if the command is "cd"
@@ -138,8 +169,9 @@ int main(int argc, char *argv[]) {
         } else {
           printf("No such directory!\n");
         }
+      }
 
-      } else {
+      else {
         // forking a child process to run the command
         pid_t cpid = fork();
         if (cpid < 0) {
@@ -152,6 +184,10 @@ int main(int argc, char *argv[]) {
           }
         } else {
           // wait only for foreground child process to complete
+          if (fgGroup == -1) {
+            fgGroup = cpid;
+          }
+          setpgid(cpid, fgGroup);
           waitpid(cpid, NULL, 0);
         }
       }
@@ -163,5 +199,6 @@ int main(int argc, char *argv[]) {
     }
     free(tokens);
   }
+
   return 0;
 }
