@@ -1,3 +1,5 @@
+## Lab 01
+
 ### Q1.
 1. The command `more /proc/cpuinfo` give the information related to each of the **logical** processors present on the computer.  
 The term **core** refers to the actual physical locations to execute instructions.
