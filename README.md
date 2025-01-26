@@ -1,2 +1,1 @@
-This repository contains all the labs related to the course of Operating Systems Lab (CS236).
-Select the branch correcponding to the lab, to view all the code related to that lab.
+Implemented basic shell functionality. A prompt in an infinite loop takes input from the user, executes the command as a separate process, reap the child after completion and then prompts the user to input next command.
