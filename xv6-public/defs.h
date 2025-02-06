@@ -1,3 +1,5 @@
+#include "processInfo.h"
+
 struct buf;
 struct context;
 struct file;
@@ -9,6 +11,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+
 
 // bio.c
 void            binit(void);
@@ -120,6 +123,11 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+// 
+int             getNumProc(void);
+int             getMaxPid(void);
+int             getProcInfo(int, struct processInfo *);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);

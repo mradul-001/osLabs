@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "processInfo.h"
 
 struct {
   struct spinlock lock;
@@ -199,6 +200,8 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  
+  np->ncs = 0;                        // Author: Mradul Sonkar
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -343,6 +346,10 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
+      // ---------------- Author: Mradul Sonkar ----------------
+      p->ncs++; // increase this number when process is context switched in
+      // -------------------------------------------------------
+
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
@@ -377,6 +384,10 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = mycpu()->intena;
+  // ---------------- Author: Mradul Sonkar ----------------
+  p->ncs++; // increase this number when process is context switched out
+  // -------------------------------------------------------
+
   swtch(&p->context, mycpu()->scheduler);
   mycpu()->intena = intena;
 }
@@ -531,4 +542,38 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+// ---------------- Author: Mradul Sonkar ----------------
+
+int getNumProc(void) {
+  
+  int count = 0;
+  acquire(&ptable.lock);
+  struct proc *p;
+  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if (p->state != UNUSED) count++;
+  }
+  
+  release(&ptable.lock);
+  return count;
+
+}
+
+int getMaxPid(void) {
+  
+  int maxPid = -1;
+
+  acquire(&ptable.lock);
+  struct proc *p;
+  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if (p->pid > maxPid) maxPid = p->pid;
+  }
+  
+  release(&ptable.lock);
+  return maxPid;
+
 }

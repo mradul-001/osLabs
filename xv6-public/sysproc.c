@@ -89,3 +89,26 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+// ---------------- Author: Mradul Sonkar ----------------
+
+int sys_hello(void) {
+  cprintf("Hello\n");
+  return 0;
+}
+
+int sys_helloYou(void) {
+  char *name;
+  if (argstr(0, &name) == -1) return -1;
+  cprintf("Hello, %s\n", name);
+  return 0;
+}
+
+int sys_getNumProc(void) {
+  return getNumProc();
+}
+
+int sys_getMaxPid(void) {
+  return getMaxPid();
+}
