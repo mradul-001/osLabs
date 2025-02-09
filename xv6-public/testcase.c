@@ -10,5 +10,9 @@ int main() {
 
     // printf(getMaxPid(), "Maximum pid: %d\n");
 
+    struct processInfo p;
+
+    getProcInfo(2, &p);
+
     return 0;
 }

@@ -126,7 +126,7 @@ void            yield(void);
 // 
 int             getNumProc(void);
 int             getMaxPid(void);
-int             getProcInfo(int, struct processInfo *);
+void            getProcInfo(int, struct processInfo *);
 
 
 // swtch.S
