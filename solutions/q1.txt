@@ -1,0 +1,13 @@
+(a) ps -e -o pid,state,rss
+
+(b) pstree -A 123
+    General syntax: pstree -A <pid>
+
+(c) ps -e
+    For more details about the process: ps -eF
+
+(d) ps axjf
+    For a tree without ASCII characters: ps -ejH
+
+(e) ps -e | grep -v "init"
+    Using only ps, the following command will list process but the session leaders (init systems) :ps -d
