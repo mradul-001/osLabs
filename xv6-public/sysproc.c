@@ -114,22 +114,23 @@ int sys_getMaxPid(void) {
 }
 
 int sys_getProcInfo(void) {
-
   // extract the pid of process from the arguments
   int pid;
   argint(0, &pid);
-
-  // extracting the pointer to the structure passed
-  char *buff;
-  argstr(1, &buff);
-  struct processInfo *str = (struct processInfo *) buff;
-
-  struct processInfo *p;
-  getProcInfo(pid, p);
-
-  str->ppid = p->ppid;
-  str->psize = p->psize;
-  str->numberContextSwitches = p->numberContextSwitches;
-
+  struct processInfo *addr;
+  argstr(1, (char **)&addr);
+  getProcInfo(pid, addr);
   return 0;
+}
+
+
+int sys_setPrio(void) {
+  int priority;
+  if (argint(0, &priority) == -1) return -1;
+  if (setPrio(priority) == -1) return -1;
+  return 0;
+}
+
+int sys_getPrio(void) {
+  return getPrio();
 }

@@ -127,6 +127,8 @@ void            yield(void);
 int             getNumProc(void);
 int             getMaxPid(void);
 void            getProcInfo(int, struct processInfo *);
+int             setPrio(int);
+int             getPrio(void);
 
 
 // swtch.S

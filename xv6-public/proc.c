@@ -201,6 +201,7 @@ fork(void)
   *np->tf = *curproc->tf;
   
   np->ncs = 0;                        // Author: Mradul Sonkar
+  np->priority = 0;                   // Author: Mradul Sonkar
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -334,28 +335,55 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    int maxPri = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      // ---------------- Author: Mradul Sonkar ----------------
-      p->ncs++; // increase this number when process is context switched in
-      // -------------------------------------------------------
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+      if (p->state != RUNNABLE) continue;
+      if (p->priority > maxPri) maxPri = p->priority;
     }
+
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      
+      if (p->state != RUNNABLE) continue;
+      if (p->priority == maxPri) {
+        
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        
+        p->ncs++;                             // increase the number of context switches
+        p->priority = p->priority * 0.9;      // decrease the priority
+
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+  
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
+    }
+
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    //   if(p->state != RUNNABLE)
+    //     continue;
+
+    //   // Switch to chosen process.  It is the process's job
+    //   // to release ptable.lock and then reacquire it
+    //   // before jumping back to us.
+    //   c->proc = p;
+    //   switchuvm(p);
+    //   p->state = RUNNING;
+
+    //   p->ncs++;
+
+    //   swtch(&(c->scheduler), p->context);
+    //   switchkvm();
+
+    //   // Process is done running for now.
+    //   // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    // }
+
     release(&ptable.lock);
 
   }
@@ -383,6 +411,7 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = mycpu()->intena;
+
   // ---------------- Author: Mradul Sonkar ----------------
   p->ncs++; // increase this number when process is context switched out
   // -------------------------------------------------------
@@ -578,18 +607,27 @@ int getMaxPid(void) {
 }
 
 void getProcInfo(int pid, struct processInfo *ppp) {
-  
   acquire(&ptable.lock);
   struct proc *p;
-  
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if (p->pid == pid) break;
   }
-
   ppp->ppid = p->parent->pid;
   ppp->psize = p->sz;
   ppp->numberContextSwitches = p->ncs;
   release(&ptable.lock);
-
   return;
+}
+
+// set the priority of current process
+int setPrio(int priority) {
+  struct proc* currProc = myproc();
+  currProc->priority = priority;
+  return 0;
+}
+
+// get the priority of current process
+int getPrio(void) {
+  struct proc* currProc = myproc();
+  return currProc->priority;
 }
