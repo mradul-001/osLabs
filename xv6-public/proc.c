@@ -586,9 +586,10 @@ void getProcInfo(int pid, struct processInfo *ppp) {
     if (p->pid == pid) break;
   }
 
-  ppp->ppid = p->parent->pid;
+  ppp->ppid = p->pid == 1 ? 0 : p->parent->pid;
   ppp->psize = p->sz;
   ppp->numberContextSwitches = p->ncs;
+  
   release(&ptable.lock);
 
   return;

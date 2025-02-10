@@ -31,7 +31,7 @@ int hello(void);
 int helloYou(char*);
 int getNumProc(void);
 int getMaxPid(void);
-void getProcInfo(int, struct processInfo *);
+int getProcInfo(int, struct processInfo *);
 // -------------------------------------------------------
 
 
