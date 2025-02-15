@@ -103,6 +103,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+// Author : Mradul Sonkar
 extern int sys_hello(void);
 extern int sys_helloYou(void);
 extern int sys_getNumProc(void);
@@ -133,6 +134,7 @@ static int (*syscalls[])(void) = {
 [SYS_link]          = sys_link,
 [SYS_mkdir]         = sys_mkdir,
 [SYS_close]         = sys_close,
+// Author : Mradul Sonkar
 [SYS_hello]         = sys_hello,
 [SYS_helloYou]      = sys_helloYou,
 [SYS_getNumProc]    = sys_getNumProc,

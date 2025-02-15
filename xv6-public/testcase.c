@@ -21,6 +21,5 @@ int main() {
     // setPrio(444);
     // printf(1, "The priority of the current process is: %d\n\n", getPrio());
 
-
     return 0;
 }

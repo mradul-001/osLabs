@@ -7,6 +7,10 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#define MAX_PRIORITY 1000
+#define THRESHOLD_INCREAMENT 10
+
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -201,7 +205,7 @@ fork(void)
   *np->tf = *curproc->tf;
   
   np->ncs = 0;                        // Author: Mradul Sonkar
-  np->priority = 0;                   // Author: Mradul Sonkar
+  np->priority = 10;                  // Author: Mradul Sonkar
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -328,64 +332,44 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
+
+  int threshold;
   
   for(;;){
+
+    threshold = 10;
+
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    int maxPri = 0;
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if (p->state != RUNNABLE) continue;
-      if (p->priority > maxPri) maxPri = p->priority;
-    }
+    while (threshold < MAX_PRIORITY)
+    {    
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->state != RUNNABLE || p->priority < threshold)
+          continue;
 
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      
-      if (p->state != RUNNABLE) continue;
-      if (p->priority == maxPri) {
-        
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
         c->proc = p;
         switchuvm(p);
         p->state = RUNNING;
-        
-        p->ncs++;                             // increase the number of context switches
-        p->priority = p->priority * 0.9;      // decrease the priority
+        p->ncs++; // increase the number of context switches
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
-  
+
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
       }
+      threshold += THRESHOLD_INCREAMENT;
     }
 
-    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    //   if(p->state != RUNNABLE)
-    //     continue;
-
-    //   // Switch to chosen process.  It is the process's job
-    //   // to release ptable.lock and then reacquire it
-    //   // before jumping back to us.
-    //   c->proc = p;
-    //   switchuvm(p);
-    //   p->state = RUNNING;
-
-    //   p->ncs++;
-
-    //   swtch(&(c->scheduler), p->context);
-    //   switchkvm();
-
-    //   // Process is done running for now.
-    //   // It should have changed its p->state before coming back.
-    //   c->proc = 0;
-    // }
-
     release(&ptable.lock);
-
   }
 }
 
@@ -578,16 +562,15 @@ procdump(void)
 int getNumProc(void) {
   
   int count = 0;
+  
   acquire(&ptable.lock);
   struct proc *p;
-  
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if (p->state != UNUSED) count++;
   }
-  
   release(&ptable.lock);
+  
   return count;
-
 }
 
 int getMaxPid(void) {
@@ -596,14 +579,12 @@ int getMaxPid(void) {
 
   acquire(&ptable.lock);
   struct proc *p;
-  
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if (p->pid > maxPid) maxPid = p->pid;
   }
-  
   release(&ptable.lock);
-  return maxPid;
 
+  return maxPid;
 }
 
 void getProcInfo(int pid, struct processInfo *ppp) {
@@ -622,7 +603,7 @@ void getProcInfo(int pid, struct processInfo *ppp) {
 // set the priority of current process
 int setPrio(int priority) {
   struct proc* currProc = myproc();
-  currProc->priority = priority;
+  currProc->priority = priority > 1000 ? 1000 : priority;
   return 0;
 }
 
