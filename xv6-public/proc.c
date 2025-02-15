@@ -92,6 +92,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = 10;                  // Author: Mradul Sonkar
+  p->welcomeIp = 0;                  // Author: Mradul Sonkar
+
 
   release(&ptable.lock);
 
@@ -204,11 +207,15 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
   
-  np->ncs = 0;                        // Author: Mradul Sonkar
-  np->priority = 10;                  // Author: Mradul Sonkar
+  np->ncs = 0; // Author: Mradul Sonkar
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
+
+  if (np->welcomeIp != 0) {
+    np->returnIP = np->tf->eip;
+    np->tf->eip = np->welcomeIp;
+  }
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -332,12 +339,11 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-
   int threshold;
   
   for(;;){
 
-    threshold = 10;
+    threshold = 0;
 
     // Enable interrupts on this processor.
     sti();
@@ -611,4 +617,10 @@ int setPrio(int priority) {
 int getPrio(void) {
   struct proc* currProc = myproc();
   return currProc->priority;
+}
+
+
+int welcomeFunction(void(*fptr)(void)) {
+
+  return 0;
 }

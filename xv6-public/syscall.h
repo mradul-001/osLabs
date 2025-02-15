@@ -22,10 +22,12 @@
 #define SYS_close  21
 
 // Author: Mradul Sonkar
-#define SYS_hello       22
-#define SYS_helloYou    23
-#define SYS_getNumProc  24
-#define SYS_getMaxPid   25
-#define SYS_getProcInfo 26
-#define SYS_setPrio     27
-#define SYS_getPrio     28
+#define SYS_hello               22
+#define SYS_helloYou            23
+#define SYS_getNumProc          24
+#define SYS_getMaxPid           25
+#define SYS_getProcInfo         26
+#define SYS_setPrio             27
+#define SYS_getPrio             28
+#define SYS_welcomeFunction     29
+#define SYS_welcomeDone         30

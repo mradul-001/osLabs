@@ -123,13 +123,13 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-// 
+// Author: Mradul Sonkar
 int             getNumProc(void);
 int             getMaxPid(void);
 void            getProcInfo(int, struct processInfo *);
 int             setPrio(int);
 int             getPrio(void);
-
+int             welcomeFunction(void (*fptr)(void));
 
 // swtch.S
 void            swtch(struct context**, struct context*);

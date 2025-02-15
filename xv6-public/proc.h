@@ -51,6 +51,8 @@ struct proc {
   char name[16];               // Process name (debugging)
   int ncs;                     // Author: Mradul Sonkar
   int priority;                // Author: Mradul Sonkar
+  int welcomeIp;               // Author: Mradul Sonkar
+  int returnIP;                // Author: Mradul Sonkar
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -34,6 +34,8 @@ int getMaxPid(void);
 int getProcInfo(int, struct processInfo *);
 int setPrio(int);
 int getPrio(void);
+int welcomeFunction(void*);
+int welcomeDone();
 // -------------------------------------------------------
 
 

@@ -134,3 +134,17 @@ int sys_setPrio(void) {
 int sys_getPrio(void) {
   return getPrio();
 }
+
+int sys_welcomeFunction(void) {
+  
+  int functionIP;
+  if (argint(0, &functionIP) < 0) return -1;
+  myproc()->welcomeIp = functionIP;
+
+  return 0;
+}
+
+int sys_welcomeDone(void) {
+  myproc()->tf->eip = myproc()->returnIP;
+  return 0;
+}
