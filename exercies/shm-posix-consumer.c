@@ -31,25 +31,27 @@ int main()
     void *cptr = ptr + 512 * (strlen(freeString) + 1);
 
 
-
     // run forever
     while (1)
     {
-
+        printf("%s", "ran \n");
         copy = ptr;
-        
-        
+        char value = *((char *) cptr);
+        printf("%s", "ran \n");
+        printf("%d\n", value);
+
+
         // if producer is writing, wait
-        if (*((char *)cptr) == '0')
+        if (value == 48)
         {
-            while (*((char *)cptr) == '0')
+            while (value == 48)
             {
             }
         }
 
 
         // if producer has completed everything, you exit too
-        if (*((char *)cptr) == '2')
+        if (value == 50)
         {
             for (int i = 0; i < 512; i++)
             {
@@ -62,13 +64,15 @@ int main()
 
 
         // if producer has instructed for freeing, free the strings and tell the producer
-        if (*((char *)cptr) == '1')
+        if (value == 49)
         {
             for (int i = 0; i < 512; i++)
             {
+                printf("%p\n", ptr);
+                printf("%p\n", copy);
                 sprintf(copy, "%s", freeString);
-                sleep(1);
                 copy += strlen(freeString) + 1;
+                sleep(1);
             }
             printf("%s", "I have completed cleaning the memory, let the producer work.\n");
             sleep(2);
