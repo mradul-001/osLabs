@@ -7,77 +7,70 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#define MAX_SIZE 20
+#define fifo_w "/tmp/produced"
+#define fifo_r "/tmp/consumed"
+
 int main()
 {
+    const int SIZE = 4096;
+    const int NUM_MSGS = 1000;
+    const char *name = "OS part A";
+    const char *free_message = "freeeee";
 
-    char *NAME = "/osLab";
-    char *freeString = "freeeee";
-    unsigned int SIZE = 4100;
-    unsigned fd;
+    int shm_fd;
     void *ptr;
+    int i;
 
-    fd = shm_open(NAME, O_RDWR, 0666);
-    if (fd == -1)
+    /* open the shared memory segment */
+    shm_fd = shm_open(name, O_RDWR, 0666); // O_RDONLY -> ORDWR
+    if (shm_fd == -1)
     {
-        printf("%s", "Consumer: Error accessing the shared memory.\n");
+        printf("shared memory failed\n");
+        exit(-1);
     }
 
-    ptr = mmap(NULL, SIZE, PROT_READ | PROT_READ, MAP_SHARED, fd, 0);
+    /* now map the shared memory segment in the address space of the process */
+    ptr = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0); // PROT_READ -> PROT_READ | PROT_WRITE
     if (ptr == MAP_FAILED)
     {
-        printf("%s", "Consumer: Error mapping the shared memory address.\n");
+        printf("Map failed\n");
+        exit(-1);
     }
-    void *copy = ptr;
-    void *cptr = ptr + 512 * (strlen(freeString) + 1);
 
-
-    // run forever
-    while (1)
+    int fd_w = open(fifo_w, O_RDONLY);
+    int fd_r = open(fifo_r, O_WRONLY);
+    if (fd_w < 0 || fd_r < 0)
     {
-        printf("%s", "ran \n");
-        copy = ptr;
-        char value = *((char *) cptr);
-        printf("%s", "ran \n");
-        printf("%d\n", value);
+        printf("Pipes not created yet");
+        exit(-1);
+    }
 
+    int index;
+    char consumed_message[8];
 
-        // if producer is writing, wait
-        if (value == 48)
-        {
-            while (value == 48)
-            {
-            }
-        }
+    /* read for index of produced message, then free the slot and send the index*/
+    for (int i = 0; i < NUM_MSGS; i++)
+    {
+        read(fd_w, &index, sizeof(index));
 
+        strncpy(consumed_message, ptr + index, 8);
+        printf("%d - %s\n", i + 1, consumed_message);
+        memcpy(ptr + index, free_message, strlen(free_message) + 1);
 
-        // if producer has completed everything, you exit too
-        if (value == 50)
-        {
-            for (int i = 0; i < 512; i++)
-            {
-                sprintf(copy, "%s", freeString);
-                copy += strlen(freeString) + 1;
-            }
-            printf("Program finished.\n");
-            exit(EXIT_SUCCESS);
-        }
+        write(fd_r, &index, sizeof(index));
 
+        // sleep(1);
+    }
 
-        // if producer has instructed for freeing, free the strings and tell the producer
-        if (value == 49)
-        {
-            for (int i = 0; i < 512; i++)
-            {
-                printf("%p\n", ptr);
-                printf("%p\n", copy);
-                sprintf(copy, "%s", freeString);
-                copy += strlen(freeString) + 1;
-                sleep(1);
-            }
-            printf("%s", "I have completed cleaning the memory, let the producer work.\n");
-            sleep(2);
-            sprintf(ptr, "%s", "0");
-        }
+    index = -1;
+    write(fd_r, &index, sizeof(index));
+
+    /* remove the shared memory segment */
+    if (shm_unlink(name) == -1)
+    {
+        printf("Error removing %s\n", name);
+        exit(-1);
     }
 
     return 0;
