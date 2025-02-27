@@ -618,9 +618,3 @@ int getPrio(void) {
   struct proc* currProc = myproc();
   return currProc->priority;
 }
-
-
-int welcomeFunction(void(*fptr)(void)) {
-
-  return 0;
-}

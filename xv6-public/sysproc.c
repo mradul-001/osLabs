@@ -123,7 +123,6 @@ int sys_getProcInfo(void) {
   return 0;
 }
 
-
 int sys_setPrio(void) {
   int priority;
   if (argint(0, &priority) == -1) return -1;
