@@ -89,3 +89,23 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+int sys_numvp(void) {
+  struct proc *p = myproc();
+  int noOfPages = p->sz / PGSIZE;
+  return noOfPages + 1;
+}
+
+int sys_numpp(void) {
+  struct proc *p = myproc();
+  pde_t *pgdir = p->pgdir;
+  return numPP(pgdir, p->sz);
+}
+
+int sys_mymmap(void) {
+  int bytes;
+  if (argint(0, &bytes) == -1) return -1;
+  if (bytes % PGSIZE != 0) return 0;
+  return 0;
+}
