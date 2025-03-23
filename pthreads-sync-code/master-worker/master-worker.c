@@ -10,9 +10,8 @@
 int itemsProduced, curr_buf_size, itemsConsumed = 0;
 int total_items, max_buf_size, num_workers, num_masters;
 
-pthread_mutex_t prodLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t prodCondi = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t consLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t consCondi = PTHREAD_COND_INITIALIZER;
 
 int *buffer;
@@ -29,51 +28,48 @@ void print_consumed(int num, int worker)
 
 void *generate_requests_loop(void *data)
 {
-    int thread_id = *((int *)data);
+    int thread_id = *(int *)data;
     while (1)
     {
-        pthread_mutex_lock(&prodLock);
+        while (curr_buf_size >= max_buf_size)
+            pthread_cond_wait(&prodCondi, &lock);
 
         if (itemsProduced >= total_items)
         {
-            pthread_mutex_unlock(&prodLock);
+            pthread_cond_broadcast(&prodCondi);
+            pthread_mutex_unlock(&lock);
             return NULL;
         }
-
-        while (curr_buf_size >= max_buf_size)
-            pthread_cond_wait(&prodCondi, &prodLock);
-
-        buffer[curr_buf_size++] = itemsProduced;
-        print_produced(itemsProduced, thread_id);
-        itemsProduced++;
-
-        pthread_cond_signal(&consCondi);
-        pthread_mutex_unlock(&prodLock);
+        else
+        {
+            int random = rand() % 100;
+            buffer[curr_buf_size++] = random;
+            itemsProduced++;
+            print_produced(random, thread_id);
+            pthread_cond_broadcast(&consCondi);
+            pthread_mutex_unlock(&lock);
+        }
     }
-    return NULL;
 }
 
 void *consume_requests_loop(void *data)
 {
-    int worker_id = *(int *)data;
-    while (1)
-    {
-        pthread_mutex_lock(&consLock);
-
-        if (itemsConsumed >= total_items)
-        {
-            pthread_mutex_unlock(&consLock);
-            return NULL;
+    int thread_id = *(int *)data;
+    while (1) {
+        while (curr_buf_size == 0) {
+            if (itemsProduced == total_items) {
+                pthread_cond_broadcast(&consCondi);
+                pthread_mutex_unlock(&lock);
+                return NULL;
+            }
+            else {
+                pthread_cond_wait(&consCondi, &lock);
+            }
         }
-
-        while (curr_buf_size <= 0)
-            pthread_cond_wait(&consCondi, &consLock);
-
-        print_consumed(buffer[--curr_buf_size], worker_id);
-        itemsConsumed++;
-
-        pthread_cond_signal(&prodCondi);
-        pthread_mutex_unlock(&consLock);
+        int temp = buffer[--curr_buf_size];
+        print_consumed(temp, thread_id);
+        pthread_cond_broadcast(&prodCondi);
+        pthread_mutex_unlock(&lock);
     }
     return NULL;
 }
@@ -136,11 +132,10 @@ int main(int argc, char *argv[])
     for (int i = 0; i < num_workers; i++)
     {
         pthread_join(worker_thread[i], NULL);
+        printf("Worker %d joined.\n", worker_thread_id[i]);
     }
-    printf("Workers done.\n");
     // ---------------------------------------------------------------
 
-    /*----Deallocating Buffers---------------------*/
     free(buffer);
     free(master_thread_id);
     free(master_thread);
