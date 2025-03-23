@@ -1,26 +1,58 @@
 #include "rwlock.h"
 
-void InitalizeReadWriteLock(struct read_write_lock * rw)
+void InitalizeReadWriteLock(struct read_write_lock *rw)
 {
-  //	Write the code for initializing your read-write lock.
+  rw->numWorkers = 0;
+  rw->numReaders = 0;
+  rw->lock = PTHREAD_MUTEX_INITIALIZER;
+  rw->lockR = PTHREAD_MUTEX_INITIALIZER;
+  rw->lockW = PTHREAD_MUTEX_INITIALIZER;
+  rw->reader = PTHREAD_COND_INITIALIZER;
+  rw->writer = PTHREAD_COND_INITIALIZER;
 }
 
-void ReaderLock(struct read_write_lock * rw)
+void ReaderLock(struct read_write_lock *rw)
 {
-  //	Write the code for aquiring read-write lock by the reader.
+  pthread_mutex_lock(&rw->lockW);
+  while (rw->numWorkers > 0)
+  {
+    pthread_cond_wait(&rw->writer, &rw->lock);
+  }
+  if (rw->numReaders == 0)
+  {
+    pthread_mutex_lock(&rw->lock);
+  }
+  rw->numReaders++;
+  pthread_mutex_unlock(&rw->lockW);
 }
 
-void ReaderUnlock(struct read_write_lock * rw)
+void ReaderUnlock(struct read_write_lock *rw)
 {
-  //	Write the code for releasing read-write lock by the reader.
+  pthread_mutex_lock(&rw->lockR);
+  rw->numReaders--;
+  if (rw->numReaders == 0)
+  {
+    pthread_mutex_unlock(&rw->lock);
+  }
+  pthread_mutex_unlock(&rw->lockR);
 }
 
-void WriterLock(struct read_write_lock * rw)
+void WriterLock(struct read_write_lock *rw)
 {
-  //	Write the code for aquiring read-write lock by the writer.
+  pthread_mutex_lock(&rw->lockW);
+  rw->numWorkers++;
+  pthread_mutex_lock(&rw->lock);
+  pthread_mutex_unlock(&rw->lockW);
 }
 
-void WriterUnlock(struct read_write_lock * rw)
+void WriterUnlock(struct read_write_lock *rw)
 {
-  //	Write the code for releasing read-write lock by the writer.
+  pthread_mutex_lock(&rw->lockW);
+  rw->numWorkers--;
+  if (rw->numWorkers == 0)
+  {
+    pthread_cond_broadcast(&rw->reader);
+  }
+  pthread_mutex_unlock(&rw->lock);
+  pthread_mutex_unlock(&rw->lockW);
 }
