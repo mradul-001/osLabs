@@ -410,3 +410,17 @@ int numPP(pde_t *pgdir, unsigned int size)
   }
   return count;
 }
+
+int allocPage(int addr, pde_t *pte)
+{
+  char *mem = (char *)kalloc();
+  memset(mem, 0, PGSIZE);
+  if (mappages(pte, (char *)addr, PGSIZE, V2P(mem), PTE_U | PTE_W) < 0)
+  {
+    cprintf("allocPage out of memory (2)\n");
+    panic("mappages unsuccessful!");
+    kfree(mem);
+    return -1;
+  }
+  return 0;
+}

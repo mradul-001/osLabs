@@ -41,3 +41,4 @@ int atoi(const char*);
 // Author: Mradul Sonkar
 int numvp(void);
 int numpp(void);
+int mymap(int);
